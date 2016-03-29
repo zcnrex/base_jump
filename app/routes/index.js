@@ -2,6 +2,8 @@
 
 var path = process.cwd();
 var ClickHandler = require(path + '/app/controllers/clickHandler.server.js');
+var short_urls = {};
+var validator = require("validator");
 
 module.exports = function (app, passport) {
 
@@ -20,6 +22,17 @@ module.exports = function (app, passport) {
 			res.sendFile(path + '/public/index.html');
 		});
 	
+	app.route('/*')
+		.get(function(req, res, next) {
+			var route = req.params[0];
+		    if (route in short_urls){
+		    	res.statusCode = 301;
+				res.setHeader('Location', short_urls[route]);
+				res.end();
+		    }
+		    else next();
+		});
+		
 	app.route('/:str')
 		.get(function(req, res, next){
 			var date = (new Date(Number.isNaN(+req.params.str) ? req.params.str : +req.params.str)).getTime();
@@ -28,7 +41,7 @@ module.exports = function (app, passport) {
 				result = {
 					'unix': date,
 					'natural': (new Date(date)).toDateString()
-				}
+				};
 			res.end(JSON.stringify(result));
 			}
 			else{
@@ -85,4 +98,24 @@ module.exports = function (app, passport) {
 		.get(isLoggedIn, clickHandler.getClicks)
 		.post(isLoggedIn, clickHandler.addClick)
 		.delete(isLoggedIn, clickHandler.resetClicks);
+	
+	app.route('/new/*')
+		.get(function(req, res) {
+		    var addr = req.params[0];
+		    var result;
+		    if (validator.isURL(addr)){
+			    var num = Math.floor(Math.random() * 9000 + 1000).toPrecision(4);
+			    var short_url = req.headers['x-forwarded-proto'] + '\:\/\/' + req.headers['host'] + '\/' + num;
+			    result = {
+			    	'original_url': addr,
+			    	'short_url': short_url,
+			    };
+			    short_urls[num] = addr;
+		    }
+		    else{
+		    	result = {"error":"Wrong url format, make sure you have a valid protocol and real site."};
+		    }
+		    res.end(JSON.stringify(result));
+		});
+	
 };
