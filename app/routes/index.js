@@ -19,6 +19,26 @@ module.exports = function (app, passport) {
 		.get(isLoggedIn, function (req, res) {
 			res.sendFile(path + '/public/index.html');
 		});
+	
+	app.route('/:str')
+		.get(function(req, res, next){
+			var date = (new Date(Number.isNaN(+req.params.str) ? req.params.str : +req.params.str)).getTime();
+			var result;
+			if (date > 0){
+				result = {
+					'unix': date,
+					'natural': (new Date(date)).toDateString()
+				}
+			res.end(JSON.stringify(result));
+			}
+			else{
+				// result = {
+				// 	'unix': null,
+				// 	'natural': null
+				// }
+				next();
+			}
+		});
 
 	app.route('/login')
 		.get(function (req, res) {
